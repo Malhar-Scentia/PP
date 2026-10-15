@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Training admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:light;
+  --aim:#0000CC; --aim-deep:#00009A; --navy:#0A1A5C;
+  --ground:#F1F3FC; --surface:#FFFFFF; --ink:#0A1A5C; --ink-2:#4A5378; --line:#D8DCEE;
+  --chip-in:#E3E6FF; --chip-in-ink:#0A1A5C; --row-on:#F4F5FF;
+  --amber:#E8A317; --link:#0000CC; --focus:#E8A317; --drawer-shade:rgba(10,26,92,.35);
+  --bk-bg:#FCEFD2; --bk-ink:#6B4A00; --ok-bg:#DDF1E6; --ok-ink:#155C38; --bad:#B42318;
+  --sans:"IBM Plex Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --cond:"IBM Plex Sans Condensed","IBM Plex Sans","Arial Narrow",Arial,sans-serif;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  color-scheme:dark; --ground:#080C26; --surface:#10173D; --ink:#EEF1FF; --ink-2:#AEB5D8; --line:#26306A;
+  --chip-in:#1E2A78; --chip-in-ink:#EEF1FF; --row-on:#151E4D; --link:#9AA3FF; --drawer-shade:rgba(0,0,0,.55);
+  --bk-bg:#3A2E0E; --bk-ink:#F5D58A; --ok-bg:#12382A; --ok-ink:#9BE0B8; --bad:#FF8A80}}
+:root[data-theme="dark"]{color-scheme:dark; --ground:#080C26; --surface:#10173D; --ink:#EEF1FF; --ink-2:#AEB5D8; --line:#26306A;
+  --chip-in:#1E2A78; --chip-in-ink:#EEF1FF; --row-on:#151E4D; --link:#9AA3FF; --drawer-shade:rgba(0,0,0,.55);
+  --bk-bg:#3A2E0E; --bk-ink:#F5D58A; --ok-bg:#12382A; --ok-ink:#9BE0B8; --bad:#FF8A80}
+*,*::before,*::after{box-sizing:inherit}
+html,body{min-height:100%}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--aim)}
+a{color:var(--link)}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:4px}
+.wrap{max-width:1240px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+[hidden]{display:none!important}
+
+/* top bar */
+.bar{background:var(--aim);color:#fff}
+.bar .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:14px 28px;padding-top:18px;padding-bottom:18px}
+.bar .aimlogo{height:40px;width:auto;display:block}
+.bar h1{font-family:var(--cond);font-weight:700;font-size:clamp(28px,3.4vw,38px);line-height:1;margin:0;letter-spacing:-.01em}
+.org{display:inline-flex;align-items:center;gap:10px;background:#fff;color:var(--navy);border-radius:8px;padding:6px 12px;font-size:14px;font-weight:600}
+.org img{height:26px;width:auto;display:block}
+.who{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:14px;color:#DDE0FF;flex-wrap:wrap}
+.who select{font:inherit;font-size:14px;height:36px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;padding:0 10px}
+.who select option{color:#0A1A5C}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:inherit;font-size:14px;font-weight:600;height:40px;padding:0 16px;border-radius:8px;background:var(--aim);color:#fff;text-decoration:none;border:0;cursor:pointer;white-space:nowrap;transition:background-color .15s ease,color .15s ease,border-color .15s ease,transform .1s ease}
+.btn:hover{background:var(--aim-deep)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn.ghost{background:transparent;color:var(--link);border:1.5px solid var(--line)}
+.btn.ghost:hover{border-color:var(--link);background:var(--ground)}
+.btn.inv{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.45);height:36px}
+.btn.inv:hover{background:rgba(255,255,255,.12);border-color:#fff}
+.btn.sm{height:32px;padding:0 10px;font-size:13px}
+.btn.danger{background:var(--bad);color:#fff;border-color:var(--bad)}
+.link{font:inherit;font-size:14px;color:var(--link);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px;transition:color .15s}
+.link:hover{color:var(--ink)}
+
+/* tabs */
+.tabs-band{background:var(--surface);border-bottom:1px solid var(--line)}
+.tabs{display:flex;gap:4px}
+.tab{font:inherit;font-family:var(--cond);font-weight:600;font-size:22px;line-height:1;padding:16px 14px 14px;border:0;background:none;color:var(--ink-2);cursor:pointer;border-bottom:3px solid transparent;transition:color .15s,border-color .2s}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--aim)}
+.tab .n{font-family:var(--sans);font-size:13px;font-weight:500;color:var(--ink-2);margin-left:6px}
+
+main.wrap{padding-top:28px;padding-bottom:120px}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;margin-bottom:14px}
+.toolbar .grow{flex:1}
+.field{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--ink-2)}
+.field input,.field select,.field textarea{font:inherit;font-size:15px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;min-height:44px;padding:0 12px;min-width:0;width:100%;transition:border-color .15s,box-shadow .15s}
+.field textarea{padding:10px 12px;min-height:120px;resize:vertical;line-height:1.45}
+.field input:hover,.field select:hover,.field textarea:hover{border-color:var(--ink-2)}
+.field input:focus,.field select:focus,.field textarea:focus{outline:0;border-color:var(--aim);box-shadow:0 0 0 3px color-mix(in srgb,var(--aim) 18%,transparent)}
+.field .hint{font-size:12.5px;color:var(--ink-2)}
+.toolbar .field input{width:min(300px,80vw)}
+
+/* table */
+.tbl-wrap{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:720px}
+th{font-size:13px;font-weight:600;color:var(--ink-2);text-align:left;padding:10px 14px;background:var(--ground);border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:middle;font-size:14.5px}
+tr:last-child td{border-bottom:0}
+tbody tr{transition:background-color .12s}
+tbody tr:hover{background:var(--row-on)}
+tbody tr.on{background:var(--row-on);box-shadow:inset 3px 0 0 var(--aim)}
+td.ck,th.ck{width:44px;padding-right:0}
+.ck input{width:18px;height:18px;accent-color:var(--aim);cursor:pointer;display:block}
+.nm{font-weight:600}
+.em{font-size:13px;color:var(--ink-2)}
+.acts{display:flex;gap:8px;justify-content:flex-end}
+.muted{color:var(--ink-2)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--amber);display:inline-block;flex:0 0 auto}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{display:inline-flex;align-items:center;font:inherit;font-size:12.5px;line-height:1.2;padding:4px 9px;border-radius:999px;border:0;cursor:pointer;max-width:240px;transition:filter .15s,transform .1s}
+.pill:hover{filter:brightness(.95)}
+.pill:active{transform:scale(.97)}
+.pill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.s-allocated{background:var(--chip-in);color:var(--chip-in-ink)}
+.s-booked{background:var(--bk-bg);color:var(--bk-ink)}
+.s-completed{background:var(--ok-bg);color:var(--ok-ink)}
+.s-cancelled{background:transparent;color:var(--ink-2);text-decoration:line-through;box-shadow:inset 0 0 0 1px var(--line)}
+.stsel{font:inherit;font-size:13px;font-weight:600;height:32px;border-radius:999px;border:0;padding:0 28px 0 12px;cursor:pointer;appearance:none;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);background-position:calc(100% - 15px) 14px,calc(100% - 10px) 14px;background-size:5px 5px;background-repeat:no-repeat;transition:filter .15s}
+.stsel:hover{filter:brightness(.95)}
+.nodate{display:inline-block;font-size:13px;color:var(--ink-2);border:1.5px dashed var(--line);border-radius:6px;padding:2px 8px}
+.when{font-weight:600}
+.where{font-size:13px;color:var(--ink-2);display:flex;gap:6px 10px;align-items:center;flex-wrap:wrap}
+
+/* seats */
+.tabs-row{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px}
+.seats{display:flex;flex-direction:column;gap:6px;padding:12px 0 14px;min-width:min(320px,100%)}
+.seats-fig{display:flex;align-items:baseline;gap:8px;font-size:14px;color:var(--ink-2)}
+.seats-fig .big{font-family:var(--cond);font-weight:700;font-size:32px;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+.meter{height:8px;border-radius:999px;background:var(--ground);box-shadow:inset 0 0 0 1px var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:linear-gradient(90deg,var(--aim),#3D3DFF);border-radius:inherit;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.seats.low .meter i{background:linear-gradient(90deg,#C77F00,var(--amber))}
+.seats.out .meter i{background:var(--bad)}
+.seats.out .big{color:var(--bad)}
+/* grouping */
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;height:44px}
+.seg button{font:inherit;font-size:14px;padding:0 14px;border:0;background:var(--surface);color:var(--ink);cursor:pointer;transition:background-color .15s,color .15s}
+.seg button:hover{background:var(--ground)}
+.seg button[aria-pressed="true"]{background:var(--aim);color:#fff}
+tr.grp th{background:var(--surface);font-family:var(--cond);font-size:19px;font-weight:600;color:var(--ink);padding:18px 14px 8px;border-bottom:1px solid var(--line)}
+tr.grp th .muted{font-family:var(--sans);font-size:13px;font-weight:500;margin-left:8px}
+tbody tr.grp:hover{background:none}
+.src{display:inline-block;font-size:11.5px;font-weight:600;color:var(--ok-ink);background:var(--ok-bg);border-radius:999px;padding:1px 8px;margin-left:8px;vertical-align:2px}
+
+.empty-state{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:40px 24px;text-align:center;color:var(--ink-2)}
+.empty-state strong{display:block;font-family:var(--cond);font-weight:600;font-size:24px;color:var(--ink);margin-bottom:6px}
+.empty-state .btn{margin-top:14px}
+
+/* sign in */
+.gate{min-height:calc(100vh - 200px);display:grid;place-items:center;padding:40px 0}
+.gate-card{width:min(460px,100%);background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:32px;box-shadow:0 1px 0 var(--line),0 24px 48px -28px rgba(10,26,92,.35)}
+.gate-card h2{font-family:var(--cond);font-weight:600;font-size:34px;line-height:1.05;margin:0 0 10px}
+.gate-card p{margin:0 0 20px;color:var(--ink-2)}
+.gate-card .btn{width:100%;margin-top:14px;height:46px}
+.msg{font-size:14px;margin-top:12px;min-height:1.5em}
+.msg.err{color:var(--bad)}
+
+/* selection bar */
+.selbar{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:35;transform:translate(-50%,140%);display:flex;align-items:center;gap:14px;background:var(--navy);color:#fff;border-radius:14px;padding:10px 10px 10px 20px;box-shadow:0 18px 40px -12px rgba(10,26,92,.55);visibility:hidden;transition:transform .28s cubic-bezier(.2,.8,.2,1),visibility 0s linear .28s;max-width:calc(100vw - 24px)}
+.selbar.on{transform:translate(-50%,0);visibility:visible;transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+.selbar .n{font-weight:600;white-space:nowrap}
+.selbar .link{color:#DDE0FF}
+.selbar .btn{background:#fff;color:var(--aim)}
+.selbar .btn:hover{background:#DDE0FF}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .selbar{background:#EEF1FF;color:#0A1A5C}:root:not([data-theme="light"]) .selbar .link{color:#0A1A5C}:root:not([data-theme="light"]) .selbar .btn{background:var(--aim);color:#fff}}
+
+/* drawer */
+.shade{position:fixed;inset:0;background:var(--drawer-shade);z-index:40;opacity:0;pointer-events:none;transition:opacity .2s}
+.shade.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(520px,100%);background:var(--surface);z-index:41;transform:translateX(100%);visibility:hidden;transition:transform .25s ease,visibility 0s linear .25s;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.drawer.on{transform:none;visibility:visible;transition:transform .25s ease;box-shadow:-12px 0 40px rgba(10,26,92,.18)}
+.drawer form{display:contents}
+.dhead{padding:22px 24px 16px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
+.dhead h2{font-family:var(--cond);font-weight:600;font-size:30px;line-height:1.05;margin:0}
+.dhead .sub{color:var(--ink-2);font-size:14px;margin-top:6px}
+.x{margin-left:auto;flex:0 0 auto;width:44px;height:44px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;font-size:22px;line-height:1;transition:background-color .15s,border-color .15s}
+.x:hover{background:var(--ground);border-color:var(--ink-2)}
+.dbody{overflow-y:auto;padding:20px 24px 28px;flex:1;display:flex;flex-direction:column;gap:18px}
+.dfoot{padding:16px 24px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;align-items:center}
+.dfoot .msg{margin:0 auto 0 0}
+.names{display:flex;flex-wrap:wrap;gap:6px}
+.names span{background:var(--ground);border-radius:6px;padding:3px 9px;font-size:13.5px}
+.warn{background:var(--bk-bg);color:var(--bk-ink);border-radius:8px;padding:10px 12px;font-size:13.5px}
+
+.toast{position:fixed;left:calc(20px + env(safe-area-inset-left,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateY(180%);z-index:60;background:var(--navy);color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;font-weight:500;max-width:min(420px,calc(100vw - 40px));transition:transform .25s cubic-bezier(.2,.8,.2,1);box-shadow:0 12px 30px -10px rgba(10,26,92,.5)}
+.toast.on{transform:none}
+@media (max-width:760px){.toast{bottom:calc(96px + env(safe-area-inset-bottom,0px))}}
+.toast.err{background:var(--bad)}
+
+@media (max-width:640px){.who{margin-left:0;width:100%}.bar .aimlogo{height:32px}}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="wrap">
+    <img class="aimlogo" src="assets/aim-logo.png" alt="AIM">
+    <h1>Training admin</h1>
+    <div class="org" id="org" hidden></div>
+    <div class="who" id="who" hidden>
+      <label class="sr" for="clientPick">Organisation</label>
+      <select id="clientPick" hidden></select>
+      <span id="whoEmail"></span>
+      <a class="btn inv" id="calLink" href="index.html">View calendar</a>
+      <button class="btn inv" id="signOut" type="button">Sign out</button>
+    </div>
+  </div>
+</header>
+
+<section id="vLoading" class="wrap gate"><div class="muted" aria-busy="true">Loading</div></section>
+
+<section id="vSignin" class="wrap gate" hidden>
+  <form class="gate-card" id="signinForm" novalidate>
+    <h2>Manage training for your team</h2>
+    <p>Enter your work email and we will send you a sign-in link.</p>
+    <label class="field">Work email<input id="signinEmail" type="email" autocomplete="email" required></label>
+    <button class="btn" type="submit" id="signinBtn">Email me a sign-in link</button>
+    <div class="msg" id="signinMsg" role="status" aria-live="polite"></div>
+  </form>
+</section>
+
+<section id="vNoAccess" class="wrap gate" hidden>
+  <div class="gate-card">
+    <h2>No admin access on this account</h2>
+    <p>You are signed in, but this account is not set up to manage training for any organisation. Ask your AIM contact to add you as an admin.</p>
+    <button class="btn ghost" type="button" data-signout>Sign out</button>
+  </div>
+</section>
+
+<div id="vConsole" hidden>
+  <nav class="tabs-band"><div class="wrap tabs-row"><div class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab" role="tab" id="tabPeople" aria-selected="true" aria-controls="pPeople" data-tab="people">People<span class="n" id="nPeople"></span></button>
+    <button class="tab" role="tab" id="tabAllocs" aria-selected="false" aria-controls="pAllocs" data-tab="allocs">Allocations<span class="n" id="nAllocs"></span></button>
+  </div>
+  <div class="seats" id="seats" hidden>
+    <div class="seats-fig"><span class="big" id="seatsLeft"></span><span id="seatsOf"></span></div>
+    <div class="meter" role="meter" id="seatsMeter" aria-label="Seats used" aria-valuemin="0"><i id="seatsBar"></i></div>
+  </div></div></nav>
+
+  <main class="wrap">
+    <section id="pPeople" role="tabpanel" aria-labelledby="tabPeople">
+      <div class="toolbar">
+        <label class="field">Search people<input id="pq" type="search" placeholder="Name, email or team" autocomplete="off"></label>
+        <div class="grow"></div>
+        <button class="btn ghost" type="button" id="copyLink" title="People on this list sign in on the calendar with their email to book">Copy booking link</button>
+        <button class="btn" type="button" id="addPeople">Add people</button>
+      </div>
+      <div id="peopleView"></div>
+    </section>
+
+    <section id="pAllocs" role="tabpanel" aria-labelledby="tabAllocs" hidden>
+      <div class="toolbar">
+        <label class="field">Search allocations<input id="aq" type="search" placeholder="Person or course" autocomplete="off"></label>
+        <label class="field">Status<select id="ast">
+          <option value="active">Not cancelled</option>
+          <option value="allocated">Allocated</option>
+          <option value="booked">Booked</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="all">All statuses</option>
+        </select></label>
+        <div class="seg" role="group" aria-label="Group allocations">
+          <button type="button" data-group="person" aria-pressed="true">By date</button>
+          <button type="button" data-group="course" aria-pressed="false">By course</button>
+        </div>
+        <div class="grow"></div>
+        <button class="btn ghost" type="button" id="csv">Download CSV</button>
+      </div>
+      <div id="allocView"></div>
+    </section>
+  </main>
+</div>
+
+<div class="selbar" id="selbar" aria-hidden="true">
+  <span class="n" id="selN"></span>
+  <button class="link" type="button" id="selClear">Clear</button>
+  <button class="btn" type="button" id="selAllocate">Allocate to a course</button>
+</div>
+
+<div class="shade" id="shade"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dTitle" aria-hidden="true">
+  <form id="dForm" novalidate>
+    <div class="dhead"><div><h2 id="dTitle"></h2><div class="sub" id="dSub"></div></div><button class="x" id="dClose" type="button" aria-label="Close">×</button></div>
+    <div class="dbody" id="dBody"></div>
+    <div class="dfoot"><div class="msg err" id="dMsg" role="alert"></div><button class="btn ghost" type="button" id="dCancel">Cancel</button><button class="btn" type="submit" id="dSubmit"></button></div>
+  </form>
+</aside>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+function el(t,cls,txt){const e=document.createElement(t);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+const sb=supabase.createClient(APP_CONFIG.supabaseUrl,APP_CONFIG.supabaseAnonKey);
+
+const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const TODAY=iso(new Date());
+const pd=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const fmtDay=d=>d.toLocaleDateString("en-AU",{weekday:"short",day:"numeric",month:"short"}).replace(",","");
+function when(s){const a=pd(s.start_date),b=pd(s.end_date),Y=" "+b.getFullYear();if(s.start_date===s.end_date)return fmtDay(a)+Y;return (a.getMonth()===b.getMonth()?`${a.toLocaleDateString("en-AU",{weekday:"short",day:"numeric"})} to ${fmtDay(b)}`:`${fmtDay(a)} to ${fmtDay(b)}`)+Y}
+function length(s,virtual){const n=s.session_count;if(!n)return "";if(virtual)return n===1?"1 session":`${n} sessions`;const days=Math.round((pd(s.end_date)-pd(s.start_date))/864e5)+1;return n===1?"1 day":(days===n?`${n} days`:`${n} sessions`)}
+const plural=(n,one,many)=>`${n} ${n===1?one:many}`;
+const STATUS={allocated:"Allocated",booked:"Booked",completed:"Completed",cancelled:"Cancelled"};
+
+async function fetchAll(build){const out=[],step=1000;for(let from=0;;from+=step){const {data,error}=await build().range(from,from+step-1);if(error)throw error;out.push(...data);if(data.length<step)return out}}
+
+const st={clients:[],client:null,courses:[],courseById:new Map(),locById:new Map(),learners:[],learnerById:new Map(),allocs:[],sel:new Set(),seats:null,group:"person",tab:"people",pq:"",aq:"",ast:"active",sessCache:new Map()};
+
+/* ─── views & toast ─── */
+function show(v){for(const id of ["vLoading","vSignin","vNoAccess","vConsole"])$(id).hidden=id!==v;if(v!=="vConsole")syncSelbar()}
+let toastT;
+function toast(text,err){const t=$("toast");t.textContent=text;t.classList.toggle("err",!!err);t.classList.add("on");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("on"),err?5000:2600)}
+function fail(err,fallback){console.error(err);if(err?.message==="no_seats")return toast(`No seats left. ${st.client?.name} has used all ${st.seats?.purchased?.toLocaleString("en-AU")} seats.`,true);toast(fallback||"That did not save. Check your connection and try again.",true)}
+
+/* ─── auth ─── */
+// supabase-js deadlocks if you await its own calls inside onAuthStateChange, so defer.
+let bootedFor=null;
+sb.auth.onAuthStateChange((_e,session)=>setTimeout(()=>onSession(session),0));
+
+async function onSession(session){
+  if(!session){bootedFor=null;$("who").hidden=true;$("org").hidden=true;show("vSignin");return}
+  if(bootedFor===session.user.id)return;
+  bootedFor=session.user.id;
+  $("whoEmail").textContent=session.user.email;$("who").hidden=false;show("vLoading");
+  try{
+    const {data,error}=await sb.from("client_admins").select("clients(id,slug,name,logo_url)");
+    if(error)throw error;
+    st.clients=data.map(d=>d.clients).filter(Boolean).sort((a,b)=>a.name.localeCompare(b.name));
+    if(!st.clients.length){show("vNoAccess");return}
+    const pick=$("clientPick");pick.replaceChildren(...st.clients.map(c=>{const o=el("option",null,c.name);o.value=c.id;return o}));pick.hidden=st.clients.length<2;
+    await loadCatalog();
+    let pref=null;try{pref=localStorage.getItem("aim-admin-client")}catch{}
+    await selectClient(st.clients.find(c=>c.id===pref)||st.clients[0]);
+    show("vConsole");
+  }catch(err){console.error(err);show("vSignin");$("signinMsg").className="msg err";$("signinMsg").textContent="Something went wrong loading your account. Refresh to try again."}
+}
+
+$("signinForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const email=$("signinEmail").value.trim(),msg=$("signinMsg"),btn=$("signinBtn");
+  if(!/^\S+@\S+\.\S+$/.test(email)){msg.className="msg err";msg.textContent="Enter a valid email address.";return}
+  btn.disabled=true;msg.className="msg";msg.textContent="Sending";
+  const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}});
+  btn.disabled=false;
+  if(error){msg.className="msg err";msg.textContent="We could not send a link to that address. Use the email your AIM contact set up as an admin.";return}
+  msg.textContent=`Check ${email} for your sign-in link. You can close this tab once you have opened it.`;
+});
+const signOut=()=>sb.auth.signOut();
+$("signOut").onclick=signOut;document.querySelector("[data-signout]").onclick=signOut;
+
+/* ─── data ─── */
+async function loadCatalog(){
+  const [c,l]=await Promise.all([sb.from("courses").select("id,name").order("name"),sb.from("locations").select("id,name,is_virtual,sort_order").order("sort_order")]);
+  if(c.error)throw c.error;if(l.error)throw l.error;
+  st.courses=c.data;st.courseById=new Map(c.data.map(x=>[x.id,x]));st.locById=new Map(l.data.map(x=>[x.id,x]));
+}
+async function loadClient(){
+  const cid=st.client.id;
+  const [learners,allocs,seats]=await Promise.all([
+    fetchAll(()=>sb.from("learners").select("id,full_name,email,team").eq("client_id",cid).order("full_name").order("id")),
+    fetchAll(()=>sb.from("allocations").select("id,learner_id,course_id,session_id,status,source,notes,sessions(start_date,end_date,session_count,limited,location_id)").eq("client_id",cid).order("created_at").order("id")),
+    sb.rpc("seat_summary",{p_client:cid}).single()
+  ]);
+  if(seats.error)throw seats.error;st.seats=seats.data;
+  st.learners=learners;st.learnerById=new Map(learners.map(x=>[x.id,x]));st.allocs=allocs;
+  for(const id of [...st.sel])if(!st.learnerById.has(id))st.sel.delete(id);
+}
+async function refresh(){try{await loadClient()}catch(err){fail(err,"Could not refresh. Reload the page.")}renderAll()}
+async function selectClient(c){
+  st.client=c;st.sel.clear();st.pq=st.aq="";$("pq").value=$("aq").value="";
+  try{localStorage.setItem("aim-admin-client",c.id)}catch{}
+  $("clientPick").value=c.id;
+  const org=$("org");org.replaceChildren();
+  if(c.logo_url){const i=el("img");i.src=c.logo_url;i.alt=c.name;org.append(i)}else org.append(el("span",null,c.name));
+  org.hidden=false;
+  $("calLink").href=`index.html?client=${encodeURIComponent(c.slug)}`;
+  document.title=`Training admin for ${c.name}`;
+  await loadClient();renderAll();
+}
+$("clientPick").addEventListener("change",async e=>{show("vLoading");try{await selectClient(st.clients.find(c=>c.id===e.target.value))}catch(err){fail(err)}show("vConsole")});
+
+const activeFor=lid=>st.allocs.filter(a=>a.learner_id===lid&&a.status!=="cancelled");
+function sessionLine(s){if(!s)return null;const loc=st.locById.get(s.location_id);return {when:when(s),where:[loc?.name,length(s,loc?.is_virtual)].filter(Boolean).join(", "),limited:s.limited}}
+
+/* ─── tabs ─── */
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+function setTab(t){
+  st.tab=t;
+  document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===t)));
+  $("pPeople").hidden=t!=="people";$("pAllocs").hidden=t!=="allocs";
+  syncSelbar();
+}
+function renderSeats(){
+  const s=st.seats,box=$("seats");if(!s||!s.purchased){box.hidden=true;return}
+  box.hidden=false;
+  $("seatsLeft").textContent=s.remaining.toLocaleString("en-AU");
+  $("seatsOf").textContent=`seats left of ${s.purchased.toLocaleString("en-AU")} (${s.used.toLocaleString("en-AU")} used)`;
+  const pct=Math.min(100,s.used/s.purchased*100);$("seatsBar").style.width=pct+"%";
+  const m=$("seatsMeter");m.setAttribute("aria-valuemax",s.purchased);m.setAttribute("aria-valuenow",s.used);m.setAttribute("aria-valuetext",`${s.used} of ${s.purchased} seats used`);
+  box.classList.toggle("out",s.remaining===0);box.classList.toggle("low",s.remaining>0&&s.remaining/s.purchased<.1);
+}
+async function refreshSeats(){const {data,error}=await sb.rpc("seat_summary",{p_client:st.client.id}).single();if(!error){st.seats=data;renderSeats()}}
+function renderAll(){
+  renderSeats();
+  $("nPeople").textContent=st.learners.length;
+  $("nAllocs").textContent=st.allocs.filter(a=>a.status!=="cancelled").length;
+  renderPeople();renderAllocs();syncSelbar();
+}
+
+/* ─── people ─── */
+$("pq").addEventListener("input",e=>{st.pq=e.target.value.trim().toLowerCase();renderPeople()});
+$("addPeople").onclick=()=>openPerson(null);
+
+function peopleFiltered(){const q=st.pq;return st.learners.filter(p=>!q||p.full_name.toLowerCase().includes(q)||p.email.toLowerCase().includes(q)||(p.team||"").toLowerCase().includes(q))}
+
+function renderPeople(){
+  const v=$("peopleView");v.replaceChildren();
+  if(!st.learners.length){
+    const e=el("div","empty-state");e.append(el("strong",null,"No people yet"),el("div",null,"Add the people you want to send on training, then allocate them to courses."));
+    const b=el("button","btn","Add people");b.type="button";b.onclick=()=>openPerson(null);e.append(b);v.append(e);return;
+  }
+  const list=peopleFiltered();
+  if(!list.length){const e=el("div","empty-state");e.append(el("div",null,`No one matches "${$("pq").value.trim()}".`));v.append(e);return}
+
+  const wrap=el("div","tbl-wrap"),t=el("table"),th=el("thead"),hr=el("tr");
+  const all=el("input");all.type="checkbox";all.setAttribute("aria-label","Select everyone shown");
+  const nSel=list.filter(p=>st.sel.has(p.id)).length;all.checked=nSel===list.length;all.indeterminate=nSel>0&&nSel<list.length;
+  all.onchange=()=>{list.forEach(p=>all.checked?st.sel.add(p.id):st.sel.delete(p.id));renderPeople();syncSelbar()};
+  const c0=el("th","ck");c0.append(all);hr.append(c0);
+  ["Person","Team","Courses",""].forEach(h=>hr.append(el("th",null,h)));
+  th.append(hr);t.append(th);
+  const tb=el("tbody");
+  list.forEach(p=>{
+    const tr=el("tr",st.sel.has(p.id)?"on":"");
+    const cb=el("input");cb.type="checkbox";cb.checked=st.sel.has(p.id);cb.setAttribute("aria-label",`Select ${p.full_name}`);
+    cb.onchange=()=>{cb.checked?st.sel.add(p.id):st.sel.delete(p.id);tr.classList.toggle("on",cb.checked);syncSelbar();const n=list.filter(x=>st.sel.has(x.id)).length;all.checked=n===list.length;all.indeterminate=n>0&&n<list.length};
+    const c1=el("td","ck");c1.append(cb);
+    const c2=el("td");c2.append(el("div","nm",p.full_name),el("div","em",p.email));
+    const c3=el("td",p.team?"":"muted",p.team||"Not set");
+    const c4=el("td"),pills=el("div","pills"),act=activeFor(p.id);
+    if(!act.length)c4.append(el("span","muted","None yet"));
+    act.slice(0,3).forEach(a=>{const b=el("button","pill s-"+a.status);b.type="button";b.title=`${st.courseById.get(a.course_id)?.name}, ${STATUS[a.status]}`;b.append(el("span",null,st.courseById.get(a.course_id)?.name||"Course"));b.onclick=()=>{st.aq=p.email.toLowerCase();$("aq").value=p.email;st.ast="active";$("ast").value="active";renderAllocs();setTab("allocs")};pills.append(b)});
+    if(act.length>3)pills.append(el("span","muted",`and ${act.length-3} more`));
+    if(act.length)c4.append(pills);
+    const c5=el("td"),acts=el("div","acts");
+    const ed=el("button","btn ghost sm","Edit");ed.type="button";ed.onclick=()=>openPerson(p);
+    acts.append(ed,confirmBtn("Remove",`Remove ${p.full_name}`,()=>removePerson(p)));
+    c5.append(acts);
+    tr.append(c1,c2,c3,c4,c5);tb.append(tr);
+  });
+  t.append(tb);wrap.append(t);v.append(wrap);
+}
+
+// Two-step destructive button: first click arms, second click confirms, blur disarms.
+function confirmBtn(label,aria,fn){
+  const b=el("button","btn ghost sm",label);b.type="button";b.setAttribute("aria-label",aria);let armed=false;
+  const disarm=()=>{armed=false;b.className="btn ghost sm";b.textContent=label};
+  b.onclick=async()=>{if(!armed){armed=true;b.className="btn danger sm";b.textContent="Confirm";return}b.disabled=true;try{await fn()}finally{if(b.isConnected){b.disabled=false;disarm()}}};
+  b.onblur=disarm;return b;
+}
+
+async function removePerson(p){
+  const {error}=await sb.from("learners").delete().eq("id",p.id);
+  if(error)return fail(error);
+  st.sel.delete(p.id);toast(`Removed ${p.full_name}`);await refresh();
+}
+
+/* ─── selection bar ─── */
+function syncSelbar(){
+  const n=st.sel.size,on=n>0&&st.tab==="people"&&!$("vConsole").hidden;
+  $("selbar").classList.toggle("on",on);$("selbar").setAttribute("aria-hidden",String(!on));
+  $("selbar").querySelectorAll("button").forEach(b=>b.tabIndex=on?0:-1);
+  $("selN").textContent=plural(n,"person selected","people selected");
+}
+$("selClear").onclick=()=>{st.sel.clear();renderPeople();syncSelbar()};
+$("selAllocate").onclick=()=>openAllocate([...st.sel],null);
+
+/* ─── drawer ─── */
+let lastFocus=null,onSubmit=null;
+function openDrawer({title,sub,body,submit}){
+  lastFocus=document.activeElement;
+  $("dTitle").textContent=title;$("dSub").textContent=sub||"";$("dBody").replaceChildren(...body);
+  $("dSubmit").textContent=submit.label;$("dSubmit").disabled=false;$("dMsg").textContent="";onSubmit=submit.fn;
+  $("drawer").classList.add("on");$("shade").classList.add("on");$("drawer").setAttribute("aria-hidden","false");
+  ($("dBody").querySelector("input,select,textarea")||$("dClose")).focus();
+}
+function closeDrawer(){$("drawer").classList.remove("on");$("shade").classList.remove("on");$("drawer").setAttribute("aria-hidden","true");onSubmit=null;if(lastFocus&&document.contains(lastFocus))lastFocus.focus()}
+$("dClose").onclick=$("dCancel").onclick=$("shade").onclick=closeDrawer;
+$("drawer").addEventListener("keydown",e=>{if(e.key==="Escape")closeDrawer()});
+$("dForm").addEventListener("submit",async e=>{
+  e.preventDefault();if(!onSubmit)return;
+  $("dMsg").textContent="";$("dSubmit").disabled=true;
+  try{await onSubmit()}catch(err){fail(err)}finally{$("dSubmit").disabled=false}
+});
+const dErr=t=>{$("dMsg").textContent=t};
+function field(label,input,hint){const f=el("label","field",label);f.append(input);if(hint)f.append(el("span","hint",hint));return f}
+function input(type,value,attrs={}){const i=el("input");i.type=type;i.value=value||"";Object.entries(attrs).forEach(([k,v])=>i.setAttribute(k,v));return i}
+
+/* ─── add / edit person ─── */
+const EMAIL=/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
+function openPerson(p){
+  const name=input("text",p?.full_name,{autocomplete:"off"}),email=input("email",p?.email,{autocomplete:"off"}),team=input("text",p?.team,{autocomplete:"off"});
+  const single=[field("Full name",name),field("Email",email),field("Team",team,"Optional. Useful for filtering later.")];
+  if(p){openDrawer({title:"Edit person",sub:p.email,body:single,submit:{label:"Save changes",fn:()=>savePerson(p,name,email,team)}});return}
+
+  const bulk=el("textarea");bulk.setAttribute("aria-describedby","bulkHint");
+  const bulkField=field("People, one per line",bulk);
+  const hint=el("span","hint","Name, email, team. Paste straight from a spreadsheet: columns can be separated by commas or tabs.");hint.id="bulkHint";bulkField.append(hint);
+  const singleBox=el("div");singleBox.style.cssText="display:flex;flex-direction:column;gap:18px";singleBox.append(...single);
+  bulkField.hidden=true;
+  let mode="one";
+  const toggle=el("button","link","Add several at once");toggle.type="button";
+  toggle.onclick=()=>{mode=mode==="one"?"many":"one";singleBox.hidden=mode!=="one";bulkField.hidden=mode!=="many";toggle.textContent=mode==="one"?"Add several at once":"Add one person";$("dSubmit").textContent=mode==="one"?"Add person":"Add people";(mode==="one"?name:bulk).focus()};
+  const tw=el("div");tw.append(toggle);
+  openDrawer({title:"Add people",sub:st.client.name,body:[singleBox,bulkField,tw],submit:{label:"Add person",fn:()=>mode==="one"?addPeople([[name.value,email.value,team.value]],true):addPeople(bulk.value.split(/\r?\n/).filter(l=>l.trim()).map(l=>l.split(/\t|,/)),false)}});
+}
+
+async function savePerson(p,name,email,team){
+  const row={full_name:name.value.trim(),email:email.value.trim().toLowerCase(),team:team.value.trim()||null};
+  if(!row.full_name)return dErr("Enter a name.");
+  if(!EMAIL.test(row.email))return dErr("Enter a valid email address.");
+  const {error}=await sb.from("learners").update(row).eq("id",p.id);
+  if(error)return error.code==="23505"?dErr("Someone else on your list already has that email."):fail(error);
+  closeDrawer();toast("Saved");await refresh();
+}
+
+async function addPeople(lines,single){
+  if(!lines.length)return dErr("Paste at least one person.");
+  const have=new Set(st.learners.map(l=>l.email.toLowerCase())),seen=new Set(),rows=[],bad=[],dup=[];
+  lines.forEach((cols,i)=>{
+    const [n="",e="",t=""]=cols.map(c=>(c||"").trim());
+    const em=e.toLowerCase();
+    if(!n||!EMAIL.test(em)){bad.push(i+1);return}
+    if(have.has(em)||seen.has(em)){dup.push(em);return}
+    seen.add(em);rows.push({client_id:st.client.id,full_name:n,email:em,team:t||null});
+  });
+  if(single&&bad.length)return dErr(!lines[0][0]?.trim()?"Enter a name.":"Enter a valid email address.");
+  if(single&&dup.length)return dErr("Someone on your list already has that email.");
+  if(bad.length)return dErr(`Check ${bad.length===1?"line":"lines"} ${bad.join(", ")}: each needs a name and a valid email.`);
+  if(!rows.length)return dErr("Everyone in that list is already added.");
+  const {error}=await sb.from("learners").insert(rows);
+  if(error)return error.code==="23505"?dErr("One of those emails was added by someone else just now. Close and try again."):fail(error);
+  closeDrawer();
+  toast(`Added ${plural(rows.length,"person","people")}`+(dup.length?`, skipped ${dup.length} already on your list`:""));
+  await refresh();
+}
+
+/* ─── allocate ─── */
+async function sessionsFor(courseId){
+  if(st.sessCache.has(courseId))return st.sessCache.get(courseId);
+  const {data,error}=await sb.from("sessions").select("id,start_date,end_date,session_count,limited,location_id").eq("course_id",courseId).gte("start_date",TODAY).order("start_date").limit(500);
+  if(error)throw error;st.sessCache.set(courseId,data);return data;
+}
+
+function openAllocate(ids,editing){
+  const people=ids.map(id=>st.learnerById.get(id)).filter(Boolean);
+  const names=el("div","names");people.slice(0,10).forEach(p=>names.append(el("span",null,p.full_name)));if(people.length>10)names.append(el("span",null,`and ${people.length-10} more`));
+  const nameField=el("div","field",editing?"Person":"People");nameField.append(names);
+
+  const course=el("select");course.append(Object.assign(el("option",null,"Choose a course"),{value:""}));
+  st.courses.forEach(c=>{const o=el("option",null,c.name);o.value=c.id;course.append(o)});
+  const date=el("select");date.disabled=true;
+  const status=el("select");Object.entries(STATUS).filter(([k])=>editing||k!=="cancelled"&&k!=="completed").forEach(([k,v])=>{const o=el("option",null,v);o.value=k;status.append(o)});
+  const notes=el("textarea");notes.style.minHeight="80px";
+  const warn=el("div","warn");warn.hidden=true;
+
+  if(editing){course.value=editing.course_id;course.disabled=true;status.value=editing.status;notes.value=editing.notes||""}
+
+  async function fillDates(){
+    const cid=+course.value;date.replaceChildren();warn.hidden=true;
+    if(!cid){date.disabled=true;date.append(el("option",null,"Choose a course first"));return}
+    date.disabled=true;date.append(el("option",null,"Loading dates"));
+    let list;try{list=await sessionsFor(cid)}catch(err){fail(err,"Could not load dates for that course.");return}
+    if(+course.value!==cid)return; // user changed course while loading
+    date.replaceChildren(Object.assign(el("option",null,"Choose a date later"),{value:""}));
+    if(editing?.session_id&&!list.some(s=>s.id===editing.session_id)&&editing.sessions){
+      const s=sessionLine(editing.sessions);const o=el("option",null,`${s.when}, ${s.where} (current)`);o.value=editing.session_id;date.append(o);
+    }
+    const byLoc=new Map();list.forEach(s=>{if(!byLoc.has(s.location_id))byLoc.set(s.location_id,[]);byLoc.get(s.location_id).push(s)});
+    [...byLoc.keys()].sort((a,b)=>(st.locById.get(a)?.sort_order??0)-(st.locById.get(b)?.sort_order??0)).forEach(lid=>{
+      const loc=st.locById.get(lid),g=el("optgroup");g.label=loc?.name||"Other";
+      byLoc.get(lid).forEach(s=>{const len=length(s,loc?.is_virtual);const o=el("option",null,[when(s),len,s.limited?"limited places":""].filter(Boolean).join(", "));o.value=s.id;g.append(o)});
+      date.append(g);
+    });
+    if(!list.length)date.firstChild.textContent="No upcoming dates, choose later";
+    date.disabled=false;
+    if(editing)date.value=editing.session_id??"";
+    if(!editing){
+      const already=people.filter(p=>activeFor(p.id).some(a=>a.course_id===cid));
+      if(already.length){warn.textContent=`Already allocated to this course, will be skipped: ${already.map(p=>p.full_name).join(", ")}.`;warn.hidden=false}
+    }
+  }
+  course.onchange=fillDates;
+  if(editing)fillDates();else{date.append(el("option",null,"Choose a course first"))}
+
+  const seatLine=!editing&&st.seats?el("div","muted",`Uses ${plural(people.length,"seat","seats")}. ${st.seats.remaining.toLocaleString("en-AU")} of ${st.seats.purchased.toLocaleString("en-AU")} left.`):null;
+  if(seatLine)seatLine.style.fontSize="13.5px";
+  const body=[nameField,...(seatLine?[seatLine]:[]),field("Course",course),field("Date and location",date,"Leave as \"Choose a date later\" to hold a place on the course without a date."),warn,field("Status",status),field("Notes",notes,"Optional. Visible to other admins only.")];
+  openDrawer({
+    title:editing?"Change allocation":"Allocate to a course",
+    sub:editing?st.courseById.get(editing.course_id)?.name:plural(people.length,"person","people"),
+    body,
+    submit:{label:editing?"Save changes":`Allocate ${plural(people.length,"person","people")}`,fn:async()=>{
+      const cid=+course.value,sid=date.value?+date.value:null;
+      if(!cid)return dErr("Choose a course.");
+      if(editing){
+        const {error}=await sb.from("allocations").update({session_id:sid,status:status.value,notes:notes.value.trim()||null}).eq("id",editing.id);
+        if(error)return fail(error);
+        closeDrawer();toast("Allocation updated");return refresh();
+      }
+      const skip=new Set(st.allocs.filter(a=>a.course_id===cid&&a.status!=="cancelled").map(a=>a.learner_id));
+      const rows=people.filter(p=>!skip.has(p.id)).map(p=>({client_id:st.client.id,learner_id:p.id,course_id:cid,session_id:sid,status:status.value,notes:notes.value.trim()||null}));
+      if(!rows.length)return dErr("Everyone selected is already allocated to this course.");
+      if(st.seats&&rows.length>st.seats.remaining)return dErr(`Not enough seats: this needs ${rows.length}, ${st.seats.remaining} left.`);
+      const {error}=await sb.from("allocations").insert(rows);
+      if(error?.message==="no_seats"){await refreshSeats();return dErr(`Not enough seats: ${st.seats?.remaining??0} left.`)}
+      if(error)return error.code==="23505"?dErr("Someone was allocated to this course just now. Close and try again."):fail(error);
+      closeDrawer();st.sel.clear();
+      toast(`Allocated ${plural(rows.length,"person","people")}`+(people.length>rows.length?`, skipped ${people.length-rows.length}`:""));
+      await refresh();
+    }}
+  });
+}
+
+/* ─── allocations ─── */
+$("aq").addEventListener("input",e=>{st.aq=e.target.value.trim().toLowerCase();renderAllocs()});
+$("ast").addEventListener("change",e=>{st.ast=e.target.value;renderAllocs()});
+document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{st.group=b.dataset.group;document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));renderAllocs()});
+$("copyLink").onclick=async()=>{const url=new URL($("calLink").getAttribute("href"),location.href).href;try{await navigator.clipboard.writeText(url);toast("Booking link copied. Share it with the people on your list.")}catch{prompt("Copy this booking link",url)}};
+
+function allocsFiltered(){
+  const q=st.aq;
+  return st.allocs.filter(a=>{
+    if(st.ast==="active"?a.status==="cancelled":st.ast!=="all"&&a.status!==st.ast)return false;
+    if(!q)return true;
+    const p=st.learnerById.get(a.learner_id),c=st.courseById.get(a.course_id);
+    return [p?.full_name,p?.email,p?.team,c?.name].some(x=>(x||"").toLowerCase().includes(q));
+  }).sort((a,b)=>{
+    // undated first: they need a decision
+    const da=a.sessions?.start_date||"",db=b.sessions?.start_date||"";
+    return da.localeCompare(db)||(st.learnerById.get(a.learner_id)?.full_name||"").localeCompare(st.learnerById.get(b.learner_id)?.full_name||"");
+  });
+}
+
+function renderAllocs(){
+  const v=$("allocView");v.replaceChildren();
+  if(!st.allocs.length){
+    const e=el("div","empty-state");e.append(el("strong",null,"Nothing allocated yet"),el("div",null,"Select people on the People tab, then allocate them to a course."));
+    const b=el("button","btn","Go to People");b.type="button";b.onclick=()=>setTab("people");e.append(b);v.append(e);return;
+  }
+  const list=allocsFiltered();
+  if(!list.length){const e=el("div","empty-state");e.append(el("div",null,"No allocations match these filters."));const b=el("button","btn ghost","Clear filters");b.type="button";b.onclick=()=>{st.aq="";st.ast="active";$("aq").value="";$("ast").value="active";renderAllocs()};e.append(b);v.append(e);return}
+
+  const byCourse=st.group==="course";
+  const wrap=el("div","tbl-wrap"),t=el("table"),th=el("thead"),hr=el("tr");
+  (byCourse?["Person","Date and location","Status",""]:["Person","Course","Date and location","Status",""]).forEach(h=>hr.append(el("th",null,h)));th.append(hr);t.append(th);
+  const tb=el("tbody");
+  let groups=[[null,list]];
+  if(byCourse){
+    const m=new Map();list.forEach(a=>{if(!m.has(a.course_id))m.set(a.course_id,[]);m.get(a.course_id).push(a)});
+    groups=[...m].sort((x,y)=>(st.courseById.get(x[0])?.name||"").localeCompare(st.courseById.get(y[0])?.name||""));
+  }
+  groups.forEach(([cid,items])=>{
+    if(cid!=null){const g=el("tr","grp"),h=el("th");h.colSpan=4;h.scope="colgroup";h.append(document.createTextNode(st.courseById.get(cid)?.name||"Course"),el("span","muted",plural(items.length,"person","people")));g.append(h);tb.append(g)}
+    items.forEach(a=>tb.append(allocRow(a,byCourse)));
+  });
+  t.append(tb);wrap.append(t);v.append(wrap);
+}
+
+function allocRow(a,byCourse){
+  const p=st.learnerById.get(a.learner_id),c=st.courseById.get(a.course_id),s=sessionLine(a.sessions);
+  const tr=el("tr");
+  const c1=el("td"),nm=el("div","nm",p?.full_name||"Unknown");
+  if(a.source==="self"){const b=el("span","src","Self-booked");b.title="Booked by the employee on the calendar";nm.append(b)}
+  c1.append(nm,el("div","em",p?.email||""));
+  const c2=el("td",null,c?.name||"");
+  const c3=el("td");
+  if(s){c3.append(el("div","when",s.when));const w=el("div","where");w.append(el("span",null,s.where));if(s.limited){const l=el("span");l.style.cssText="display:inline-flex;gap:6px;align-items:center";l.append(el("i","dot"),document.createTextNode("Limited places"));w.append(l)}c3.append(w)}
+  else c3.append(el("span","nodate","No date yet"));
+  const c4=el("td"),sel=el("select","stsel s-"+a.status);sel.setAttribute("aria-label",`Status for ${p?.full_name}, ${c?.name}`);
+  Object.entries(STATUS).forEach(([k,lbl])=>{const o=el("option",null,lbl);o.value=k;sel.append(o)});sel.value=a.status;
+  sel.onchange=async()=>{const prev=a.status;sel.disabled=true;const {error}=await sb.from("allocations").update({status:sel.value}).eq("id",a.id);sel.disabled=false;if(error){sel.value=prev;return fail(error)}a.status=sel.value;sel.className="stsel s-"+a.status;refreshSeats();toast(`${p?.full_name}: ${STATUS[a.status]}`);$("nAllocs").textContent=st.allocs.filter(x=>x.status!=="cancelled").length;renderPeople()};
+  c4.append(sel);
+  const c5=el("td"),acts=el("div","acts");
+  const ch=el("button","btn ghost sm",s?"Change":"Pick a date");ch.type="button";ch.onclick=()=>openAllocate([a.learner_id],a);
+  acts.append(ch,confirmBtn("Remove",`Remove ${p?.full_name} from ${c?.name}`,async()=>{const {error}=await sb.from("allocations").delete().eq("id",a.id);if(error)return fail(error);toast("Allocation removed");await refresh()}));
+  c5.append(acts);
+  byCourse?tr.append(c1,c3,c4,c5):tr.append(c1,c2,c3,c4,c5);
+  return tr;
+}
+
+$("csv").onclick=()=>{
+  const esc=x=>`"${String(x??"").replace(/"/g,'""')}"`;
+  const lines=[["Name","Email","Team","Course","Start","End","Location","Status","Booked by","Notes"].map(esc).join(",")];
+  allocsFiltered().forEach(a=>{const p=st.learnerById.get(a.learner_id),s=a.sessions;lines.push([p?.full_name,p?.email,p?.team,st.courseById.get(a.course_id)?.name,s?.start_date,s?.end_date,s?st.locById.get(s.location_id)?.name:"",STATUS[a.status],a.source==="self"?"Employee":"Admin",a.notes].map(esc).join(","))});
+  const url=URL.createObjectURL(new Blob(["\ufeff"+lines.join("\r\n")],{type:"text/csv"}));
+  const link=Object.assign(el("a"),{href:url,download:`${st.client.slug}-allocations-${TODAY}.csv`});document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+</script>
+</body>
+</html>
