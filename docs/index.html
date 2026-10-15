@@ -484,21 +484,39 @@ function button(t,cls,fn){const b=el("button",cls,t);b.type="button";b.onclick=f
 function openSignin(r){
   const form=el("form","bform"),lab=el("label","bfield","Work email"),inp=el("input");
   inp.type="email";inp.autocomplete="email";inp.required=true;lab.append(inp);
-  const go=el("button","btn","Email me a sign-in link");go.type="submit";
+  const codeLab=el("label","bfield","Sign-in code from the email"),code=el("input");
+  code.inputMode="numeric";code.autocomplete="one-time-code";code.maxLength=10;codeLab.append(code);codeLab.hidden=true;
+  const go=el("button","btn","Email me a sign-in code");go.type="submit";
+  const again=el("button","link","Use a different email");again.type="button";again.hidden=true;
+  again.style.cssText="font:inherit;font-size:14px;color:var(--link);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;align-self:flex-start";
   const msg=el("div","bmsg");msg.setAttribute("role","status");
-  form.append(lab,go,msg);
+  form.append(lab,codeLab,go,again,msg);
+  // A typed code survives corporate link scanners (e.g. Microsoft Safe Links) that use up one-time links.
+  let sentTo=null;
+  again.onclick=()=>{sentTo=null;inp.disabled=false;codeLab.hidden=true;again.hidden=true;code.value="";go.textContent="Email me a sign-in code";msg.textContent="";inp.focus()};
   form.onsubmit=async e=>{
-    e.preventDefault();const email=inp.value.trim();
+    e.preventDefault();
+    if(sentTo){
+      const token=code.value.replace(/\s/g,"");
+      if(!/^\d{6,10}$/.test(token)){msg.className="bmsg err";msg.textContent="Enter the code from the email.";return}
+      go.disabled=true;msg.className="bmsg";msg.textContent="Checking";
+      const {error}=await sb.auth.verifyOtp({email:sentTo,token,type:"email"});
+      go.disabled=false;
+      if(error){console.error(error);msg.className="bmsg err";msg.textContent="That code is wrong or has expired. Check the newest email, or send a new code.";return}
+      msg.textContent="Signed in";return; // auth listener loads the account and resumes the booking
+    }
+    const email=inp.value.trim();
     if(!/^\S+@\S+\.\S+$/.test(email)){msg.className="bmsg err";msg.textContent="Enter a valid email address.";return}
     go.disabled=true;msg.className="bmsg";msg.textContent="Sending";
     try{r?sessionStorage.setItem(PENDING,String(r.id)):sessionStorage.removeItem(PENDING)}catch{}
     const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.href.split("#")[0]}});
     go.disabled=false;
-    if(error){msg.className="bmsg err";msg.textContent="We could not send a link to that address. Check it and try again.";return}
-    msg.textContent=`Check ${email} for your sign-in link.${r?" Opening it brings you back here to finish booking.":""}`;
+    if(error){console.error(error);msg.className="bmsg err";msg.textContent=/rate limit|after \d+ seconds/i.test(error.message)?"Too many sign-in emails just now. Wait a minute and try again.":"We could not send a code to that address. Check it and try again.";return}
+    sentTo=email;inp.disabled=true;codeLab.hidden=false;again.hidden=false;go.textContent="Sign in";
+    msg.textContent=`We emailed a code to ${email}. Type it above, or click the link in the email.`;code.focus();
   };
   const nodes=r?[summary(r),note(`Sign in with your ${CONFIG.clientName} email to book this place.`),form]:[note(`Sign in with your ${CONFIG.clientName} email to book courses and see your bookings.`),form];
-  showDrawer(r?C[r.c]:"Sign in",r?"Book a place":"",nodes,"No password needed. The link signs you in on this device.");
+  showDrawer(r?C[r.c]:"Sign in",r?"Book a place":"",nodes,"No password needed. We email you a one-time code.");
   setTimeout(()=>inp.focus(),50);
 }
 

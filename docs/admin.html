@@ -201,9 +201,11 @@ tbody tr.grp:hover{background:none}
 <section id="vSignin" class="wrap gate" hidden>
   <form class="gate-card" id="signinForm" novalidate>
     <h2>Manage training for your team</h2>
-    <p>Enter your work email and we will send you a sign-in link.</p>
+    <p>Enter your work email and we will send you a sign-in code.</p>
     <label class="field">Work email<input id="signinEmail" type="email" autocomplete="email" required></label>
-    <button class="btn" type="submit" id="signinBtn">Email me a sign-in link</button>
+    <label class="field" id="codeField" hidden style="margin-top:14px">Sign-in code from the email<input id="signinCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10"></label>
+    <button class="btn" type="submit" id="signinBtn">Email me a sign-in code</button>
+    <button class="link" type="button" id="signinReset" hidden style="margin-top:12px">Use a different email</button>
     <div class="msg" id="signinMsg" role="status" aria-live="polite"></div>
   </form>
 </section>
@@ -326,15 +328,32 @@ async function onSession(session){
   }catch(err){console.error(err);show("vSignin");$("signinMsg").className="msg err";$("signinMsg").textContent="Something went wrong loading your account. Refresh to try again."}
 }
 
+// Codes, not just links: corporate mail scanners (e.g. Microsoft Safe Links) open links before the user does,
+// which uses up the one-time token. Typing the code avoids that.
+let codeSentTo=null;
+function resetSignin(){codeSentTo=null;$("codeField").hidden=true;$("signinReset").hidden=true;$("signinEmail").disabled=false;$("signinCode").value="";$("signinBtn").textContent="Email me a sign-in code";$("signinMsg").textContent=""}
+$("signinReset").onclick=()=>{resetSignin();$("signinEmail").focus()};
 $("signinForm").addEventListener("submit",async e=>{
   e.preventDefault();
-  const email=$("signinEmail").value.trim(),msg=$("signinMsg"),btn=$("signinBtn");
+  const msg=$("signinMsg"),btn=$("signinBtn");
+  if(codeSentTo){
+    const token=$("signinCode").value.replace(/\s/g,"");
+    if(!/^\d{6,10}$/.test(token)){msg.className="msg err";msg.textContent="Enter the code from the email.";return}
+    btn.disabled=true;msg.className="msg";msg.textContent="Checking";
+    const {error}=await sb.auth.verifyOtp({email:codeSentTo,token,type:"email"});
+    btn.disabled=false;
+    if(error){console.error(error);msg.className="msg err";msg.textContent="That code is wrong or has expired. Check the newest email, or send a new code.";return}
+    msg.textContent="";resetSignin();return; // onAuthStateChange takes it from here
+  }
+  const email=$("signinEmail").value.trim();
   if(!/^\S+@\S+\.\S+$/.test(email)){msg.className="msg err";msg.textContent="Enter a valid email address.";return}
   btn.disabled=true;msg.className="msg";msg.textContent="Sending";
   const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}});
   btn.disabled=false;
-  if(error){msg.className="msg err";msg.textContent="We could not send a link to that address. Use the email your AIM contact set up as an admin.";return}
-  msg.textContent=`Check ${email} for your sign-in link. You can close this tab once you have opened it.`;
+  if(error){console.error(error);msg.className="msg err";msg.textContent=/rate limit|after \d+ seconds/i.test(error.message)?"Too many sign-in emails just now. Wait a minute and try again.":"We could not send a code to that address. Use the email your AIM contact set up as an admin.";return}
+  codeSentTo=email;$("signinEmail").disabled=true;$("codeField").hidden=false;$("signinReset").hidden=false;btn.textContent="Sign in";
+  msg.textContent=`We emailed a code to ${email}. Type it above, or click the link in the email.`;
+  $("signinCode").focus();
 });
 const signOut=()=>sb.auth.signOut();
 $("signOut").onclick=signOut;document.querySelector("[data-signout]").onclick=signOut;
