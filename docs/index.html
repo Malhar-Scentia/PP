@@ -169,6 +169,7 @@ footer .btn{background:#fff;color:var(--aim)}
 .stat{font-size:12.5px;font-weight:600;padding:2px 8px;border-radius:999px}
 .stat.bk{background:var(--chip-in);color:var(--chip-in-ink)}
 .stat.done{background:var(--ok-bg);color:var(--ok-ink)}
+.stat.wd{background:var(--warn-bg);color:var(--warn-ink)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 </style>
 </head>
@@ -245,7 +246,7 @@ try{
     sb.from("subjects").select("id,name").order("id"),
     sb.from("locations").select("id,name,is_virtual").order("sort_order"),
     sb.from("courses").select("id,name").order("id"),
-    fetchAll(()=>sb.from("sessions").select("id,course_id,subject_id,location_id,start_date,end_date,session_count,limited,updated_at").gte("start_date",TODAY).order("start_date").order("id")),
+    fetchAll(()=>sb.from("sessions").select("id,course_id,subject_id,location_id,start_date,end_date,session_count,limited,updated_at").eq("active",true).gte("start_date",TODAY).order("start_date").order("id")),
     slug?sb.from("clients").select("id,name,logo_url,contact_name,contact_email,contact_phone").eq("slug",slug).maybeSingle():Promise.resolve({data:null})
   ]);
   for(const r of [subjects,locations,courses,cl])if(r.error)throw r.error;
@@ -459,7 +460,7 @@ async function loadMe(session){
     const l=await sb.from("learners").select("id,full_name,email,team").eq("client_id",client.id).eq("email",session.user.email.toLowerCase()).maybeSingle();
     if(l.error)console.error(l.error);me.learner=l.data||null;
     if(me.learner){
-      const a=await sb.from("allocations").select("id,course_id,session_id,status,source,sessions(start_date,end_date,session_count,limited,location_id)").eq("learner_id",me.learner.id);
+      const a=await sb.from("allocations").select("id,course_id,session_id,status,source,sessions(start_date,end_date,session_count,limited,location_id,active)").eq("learner_id",me.learner.id);
       if(a.error)console.error(a.error);me.allocs=a.data||[];
     }
   }
@@ -552,14 +553,15 @@ function openMine(){
     const idx=ci.get(a.course_id),item=el("div","sess mine"),left=el("div");
     const nm=button(C[idx]??"Course","nm",()=>openCourse(idx));left.append(nm);
     const info=el("div","info");
-    const status=a.status==="completed"?"Completed":a.session_id?"Booked":"Allocated by your admin, no date yet";
+    const withdrawn=a.session_id&&a.sessions&&a.sessions.active===false&&a.status!=="completed";
+    const status=a.status==="completed"?"Completed":withdrawn?"Date withdrawn by AIM":a.session_id?"Booked":"Allocated by your admin, no date yet";
     info.append(el("span",null,a.session_id?allocLine(a):status));
-    if(a.session_id)info.append(el("span","stat "+(a.status==="completed"?"done":"bk"),status));
+    if(a.session_id)info.append(el("span","stat "+(a.status==="completed"?"done":withdrawn?"wd":"bk"),status));
     left.append(info);
     const act=el("div","acts");
     const hasDates=rows.some(r=>r.c===idx);
-    if(a.status!=="completed"&&!a.session_id&&hasDates)act.append(button("Pick a date","btn",()=>openCourse(idx)));
-    if(a.status!=="completed"&&a.session_id&&a.sessions?.start_date>TODAY){
+    if(a.status!=="completed"&&(!a.session_id||withdrawn)&&hasDates)act.append(button(withdrawn?"Pick a new date":"Pick a date","btn",()=>openCourse(idx)));
+    if(a.status!=="completed"&&a.session_id&&!withdrawn&&a.sessions?.start_date>TODAY){
       const lbl=a.source==="self"?"Cancel booking":"Drop this date";
       let armed=false;const c=button(lbl,"btn ghost",async()=>{
         if(!armed){armed=true;c.textContent="Confirm";c.classList.add("danger");return}

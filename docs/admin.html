@@ -107,6 +107,7 @@ td.ck,th.ck{width:44px;padding-right:0}
 .s-cancelled{background:transparent;color:var(--ink-2);text-decoration:line-through;box-shadow:inset 0 0 0 1px var(--line)}
 .stsel{font:inherit;font-size:13px;font-weight:600;height:32px;border-radius:999px;border:0;padding:0 28px 0 12px;cursor:pointer;appearance:none;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);background-position:calc(100% - 15px) 14px,calc(100% - 10px) 14px;background-size:5px 5px;background-repeat:no-repeat;transition:filter .15s}
 .stsel:hover{filter:brightness(.95)}
+.wd{display:inline-block;margin-top:4px;font-size:12.5px;font-weight:600;color:var(--bk-ink);background:var(--bk-bg);border-radius:6px;padding:2px 8px}
 .nodate{display:inline-block;font-size:13px;color:var(--ink-2);border:1.5px dashed var(--line);border-radius:6px;padding:2px 8px}
 .when{font-weight:600}
 .where{font-size:13px;color:var(--ink-2);display:flex;gap:6px 10px;align-items:center;flex-wrap:wrap}
@@ -368,7 +369,7 @@ async function loadClient(){
   const cid=st.client.id;
   const [learners,allocs,seats]=await Promise.all([
     fetchAll(()=>sb.from("learners").select("id,full_name,email,team").eq("client_id",cid).order("full_name").order("id")),
-    fetchAll(()=>sb.from("allocations").select("id,learner_id,course_id,session_id,status,source,notes,sessions(start_date,end_date,session_count,limited,location_id)").eq("client_id",cid).order("created_at").order("id")),
+    fetchAll(()=>sb.from("allocations").select("id,learner_id,course_id,session_id,status,source,notes,sessions(start_date,end_date,session_count,limited,location_id,active)").eq("client_id",cid).order("created_at").order("id")),
     sb.rpc("seat_summary",{p_client:cid}).single()
   ]);
   if(seats.error)throw seats.error;st.seats=seats.data;
@@ -390,7 +391,7 @@ async function selectClient(c){
 $("clientPick").addEventListener("change",async e=>{show("vLoading");try{await selectClient(st.clients.find(c=>c.id===e.target.value))}catch(err){fail(err)}show("vConsole")});
 
 const activeFor=lid=>st.allocs.filter(a=>a.learner_id===lid&&a.status!=="cancelled");
-function sessionLine(s){if(!s)return null;const loc=st.locById.get(s.location_id);return {when:when(s),where:[loc?.name,length(s,loc?.is_virtual)].filter(Boolean).join(", "),limited:s.limited}}
+function sessionLine(s){if(!s)return null;const loc=st.locById.get(s.location_id);return {when:when(s),where:[loc?.name,length(s,loc?.is_virtual)].filter(Boolean).join(", "),limited:s.limited,withdrawn:s.active===false}}
 
 /* ─── tabs ─── */
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
@@ -558,7 +559,7 @@ async function addPeople(lines,single){
 /* ─── allocate ─── */
 async function sessionsFor(courseId){
   if(st.sessCache.has(courseId))return st.sessCache.get(courseId);
-  const {data,error}=await sb.from("sessions").select("id,start_date,end_date,session_count,limited,location_id").eq("course_id",courseId).gte("start_date",TODAY).order("start_date").limit(500);
+  const {data,error}=await sb.from("sessions").select("id,start_date,end_date,session_count,limited,location_id").eq("course_id",courseId).eq("active",true).gte("start_date",TODAY).order("start_date").limit(500);
   if(error)throw error;st.sessCache.set(courseId,data);return data;
 }
 
@@ -685,7 +686,7 @@ function allocRow(a,byCourse){
   c1.append(nm,el("div","em",p?.email||""));
   const c2=el("td",null,c?.name||"");
   const c3=el("td");
-  if(s){c3.append(el("div","when",s.when));const w=el("div","where");w.append(el("span",null,s.where));if(s.limited){const l=el("span");l.style.cssText="display:inline-flex;gap:6px;align-items:center";l.append(el("i","dot"),document.createTextNode("Limited places"));w.append(l)}c3.append(w)}
+  if(s){c3.append(el("div","when",s.when));const w=el("div","where");w.append(el("span",null,s.where));if(s.limited){const l=el("span");l.style.cssText="display:inline-flex;gap:6px;align-items:center";l.append(el("i","dot"),document.createTextNode("Limited places"));w.append(l)}c3.append(w);if(s.withdrawn&&a.status!=="completed"&&a.status!=="cancelled"){const x=el("span","wd","Date withdrawn by AIM, pick another");c3.append(x)}}
   else c3.append(el("span","nodate","No date yet"));
   const c4=el("td"),sel=el("select","stsel s-"+a.status);sel.setAttribute("aria-label",`Status for ${p?.full_name}, ${c?.name}`);
   Object.entries(STATUS).forEach(([k,lbl])=>{const o=el("option",null,lbl);o.value=k;sel.append(o)});sel.value=a.status;
